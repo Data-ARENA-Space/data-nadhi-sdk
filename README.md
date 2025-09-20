@@ -13,8 +13,23 @@ A powerful Python logging SDK that provides structured logging with rule-based f
 
 ## Installation
 
+You can install the Data Nadhi SDK using pip:
+
+### From PyPI (when available)
 ```bash
 pip install data-nadhi-sdk
+```
+
+### Directly from GitHub
+```bash
+# Latest version from main branch
+pip install git+https://github.com/Data-ARENA-Space/data-nadhi-sdk.git
+
+# With development dependencies
+pip install "git+https://github.com/Data-ARENA-Space/data-nadhi-sdk.git#egg=data-nadhi-sdk[dev]"
+
+# Specific version/tag
+pip install git+https://github.com/Data-ARENA-Space/data-nadhi-sdk.git@v1.0.0
 ```
 
 ## Quick Start
