@@ -1,0 +1,94 @@
+"""Configuration management for Data Nadhi SDK.
+
+This module handles loading rule configurations from YAML files and managing
+API key authentication. It provides functions to:
+1. Load and parse rule configurations
+2. Convert YAML configurations to Rule objects
+3. Retrieve API keys from environment variables or explicit parameters
+"""
+
+import os
+from pathlib import Path
+
+import yaml
+
+from .datatypes import Rule, RuleCondition
+
+
+def load_config(input_config_path: str | None = None) -> list[Rule]:
+    """Load and parse rules from a YAML configuration file.
+
+    This function reads a YAML configuration file and converts it into a list
+    of Rule objects. If no path is provided, it looks for a config.yaml file
+    in the .datanadhi directory of the current working directory.
+
+    The YAML file should have this structure:
+    ```yaml
+    rules:
+      - name: rule_name
+        conditions:
+          - key: path.to.value
+            type: exact|partial|regex
+            value: value_to_match
+        stdout: true|false
+        pipelines:
+          - pipeline_id_1
+          - pipeline_id_2
+    ```
+
+    Args:
+        input_config_path: Optional path to the configuration file
+
+    Returns:
+        List of Rule objects parsed from the configuration
+
+    Raises:
+        FileNotFoundError: If the configuration file doesn't exist
+        yaml.YAMLError: If the configuration file is invalid YAML
+    """
+    if input_config_path:
+        config_path = Path(input_config_path)
+    else:
+        config_path = Path(os.getcwd()) / ".datanadhi/config.yaml"
+
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config not found at {config_path}")
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+        rules = []
+        for rule in config.get("rules", []):
+            # Convert conditions to RuleCondition objects
+            rule["conditions"] = [
+                RuleCondition(**cond) for cond in rule.get("conditions", [])
+            ]
+            # Create Rule object with all attributes
+            rule_obj = Rule(**rule)
+            rules.append(rule_obj)
+        return rules
+
+
+def get_api_key(explicit_api_key: str | None = None) -> str:
+    """Get the Data Nadhi API key from parameter or environment.
+
+    This function tries to get the API key in this order:
+    1. From the explicit_api_key parameter if provided
+    2. From the DATA_NADHI_API_KEY environment variable
+    3. Raises an error if no key is found
+
+    Args:
+        explicit_api_key: Optional API key provided directly
+
+    Returns:
+        The API key as a string
+
+    Raises:
+        ValueError: If no API key is found in parameters or environment
+    """
+    if explicit_api_key:
+        return explicit_api_key
+
+    env_key = os.environ.get("DATA_NADHI_API_KEY")
+    if not env_key:
+        raise ValueError("API key not provided via parameter or DATA_NADHI_API_KEY env")
+    return env_key
