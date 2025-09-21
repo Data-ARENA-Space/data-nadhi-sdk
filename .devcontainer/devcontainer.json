@@ -3,9 +3,13 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
+    "runArgs": [
+        "--network=datanadhi-net",
+        "--name",
+        "data-nadhi-sdk"
+    ],
     "mounts": [
-        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached",
-        "source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind"
+        "source=${env:HOME}/.ssh,target=/home/node/.ssh,type=bind"
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent"
