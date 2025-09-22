@@ -9,11 +9,8 @@
         "data-nadhi-sdk"
     ],
     "mounts": [
-        "source=${env:HOME}/.ssh,target=/home/node/.ssh,type=bind"
+        "source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind"
     ],
-    "remoteEnv": {
-        "SSH_AUTH_SOCK": "/ssh-agent"
-    },
     "customizations": {
         "vscode": {
             "extensions": [
