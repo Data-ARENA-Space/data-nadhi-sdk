@@ -35,12 +35,14 @@ import threading
 import uuid
 
 from .formatters.json_default_formatter import JsonFormatter
-from .utils.config import get_api_key, load_config
+from .utils.config import ConfigCache, get_api_key, load_config
 from .utils.datatypes import RuleEvaluationResult
 from .utils.rule_engine import evaluate_rules
 
 # Thread-safe trace ID storage
 trace_id_var = contextvars.ContextVar("trace_id", default=None)
+
+_config_cache = ConfigCache()
 
 
 class DataNadhiLogger:
@@ -77,7 +79,7 @@ class DataNadhiLogger:
         # Initialize core attributes
         self.module_name = module_name or "datanadhi_module"
         self.api_key = get_api_key(api_key)
-        self.rules = load_config(config_path)
+        self.rules = _config_cache.value or load_config(_config_cache, config_path)
 
         # Configure stack trace handling
         if stacklevel is not None:

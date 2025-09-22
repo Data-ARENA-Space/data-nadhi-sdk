@@ -15,7 +15,40 @@ import yaml
 from .datatypes import Rule, RuleCondition
 
 
-def load_config(input_config_path: str | None = None) -> list[Rule]:
+class ConfigCache:
+    def __init__(self):
+        self.value = None
+
+    @property
+    def cache(self):
+        return self.value
+
+    def set_cache(self, value):
+        self.value = value
+
+
+def get_config_paths(config_dir: Path) -> dict[str, Path]:
+    """Get paths for configuration files in the specified directory.
+
+    This function constructs paths for the main config.yaml and a sample
+    config_sample.yaml file within the given directory.
+
+    Args:
+        config_dir: Directory where config files are located
+
+    Returns:
+        Dictionary with keys 'config' and 'sample' pointing to respective file paths
+    """
+    if not config_dir.is_dir():
+        raise NotADirectoryError(f"{config_dir} is not a valid directory")
+    return [p for p in config_dir.glob("*.yaml")] + [
+        p for p in config_dir.glob("*.yml")
+    ]
+
+
+def load_config(
+    config_cache: ConfigCache, input_config_dir: str | None = None
+) -> list[Rule]:
     """Load and parse rules from a YAML configuration file.
 
     This function reads a YAML configuration file and converts it into a list
@@ -46,26 +79,31 @@ def load_config(input_config_path: str | None = None) -> list[Rule]:
         FileNotFoundError: If the configuration file doesn't exist
         yaml.YAMLError: If the configuration file is invalid YAML
     """
-    if input_config_path:
-        config_path = Path(input_config_path)
+    if input_config_dir:
+        config_dir = Path(input_config_dir)
     else:
-        config_path = Path(os.getcwd()) / ".datanadhi/config.yaml"
+        config_dir = Path(os.getcwd()) / ".datanadhi"
 
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config not found at {config_path}")
+    config_paths = get_config_paths(config_dir)
 
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-        rules = []
-        for rule in config.get("rules", []):
-            # Convert conditions to RuleCondition objects
-            rule["conditions"] = [
-                RuleCondition(**cond) for cond in rule.get("conditions", [])
-            ]
-            # Create Rule object with all attributes
-            rule_obj = Rule(**rule)
-            rules.append(rule_obj)
-        return rules
+    if len(config_paths) == 0:
+        raise FileNotFoundError(f"No config found in {config_dir}")
+
+    rules = []
+    for config_path in config_paths:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            rules = []
+            for rule in config.get("rules", []):
+                # Convert conditions to RuleCondition objects
+                rule["conditions"] = [
+                    RuleCondition(**cond) for cond in rule.get("conditions", [])
+                ]
+                # Create Rule object with all attributes
+                rule_obj = Rule(**rule)
+                rules.append(rule_obj)
+    config_cache.set_cache(rules)
+    return rules
 
 
 def get_api_key(explicit_api_key: str | None = None) -> str:
