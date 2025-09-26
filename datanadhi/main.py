@@ -38,6 +38,7 @@ from .formatters.json_default_formatter import JsonFormatter
 from .utils.config import ConfigCache, get_api_key, load_config
 from .utils.datatypes import RuleEvaluationResult
 from .utils.rule_engine import evaluate_rules
+from .utils.server import trigger_pipeline
 
 # Thread-safe trace ID storage
 trace_id_var = contextvars.ContextVar("trace_id", default=None)
@@ -75,12 +76,13 @@ class DataNadhiLogger:
         log_level: int = logging.DEBUG,
         stacklevel: int | None = None,
         skip_stack: int | None = None,
+        log_datanadhi_errors: bool = True,
     ) -> None:
         # Initialize core attributes
         self.module_name = module_name or "datanadhi_module"
         self.api_key = get_api_key(api_key)
         self.rules = _config_cache.value or load_config(_config_cache, config_path)
-
+        self.log_datanadhi_errors = log_datanadhi_errors
         # Configure stack trace handling
         if stacklevel is not None:
             self.stacklevel = stacklevel
@@ -206,14 +208,19 @@ class DataNadhiLogger:
         """
 
         def trigger_pipeline_sync(pid: str, payload: dict) -> None:
-            # TODO: Replace with actual pipeline triggering logic
-            print(f"Trigger pipeline placeholder: {pid} with payload {payload}")
+            try:
+                trigger_pipeline(self.api_key, pid, payload)
+            except Exception as e:
+                if self.log_datanadhi_errors:
+                    self.logger.error(
+                        f"Failed to trigger pipeline {pid}: {e}",
+                        exc_info=True,
+                        stacklevel=self.stacklevel,
+                    )
 
         # Trigger each pipeline in a separate daemon thread
         for pid in pipelines:
-            threading.Thread(
-                target=trigger_pipeline_sync, args=(pid, payload), daemon=True
-            ).start()
+            threading.Thread(target=trigger_pipeline_sync, args=(pid, payload)).start()
 
     # Convenience methods for different log levels
     def debug(
